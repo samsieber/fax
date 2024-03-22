@@ -82,6 +82,115 @@ pub fn decode_g3(input: impl Iterator<Item=u8>, mut line_cb: impl FnMut(&[u16]))
     Some(())
 }
 
+
+fn get_b1_b2(transitions: &[u16], color: Color, a0: u16) -> (u16, u16) {
+    // last transition is always the off the page one
+    if transitions.len() == 1 {
+        return (transitions[0], transitions[0])
+    } else if a0 == 0 && transitions[0] == 0 && color == Color::White {
+        return (transitions[0], transitions[1])
+    } else {
+        let target = if color == Color::White {
+            0
+        } else {
+            1
+        };
+        for (idx, transition) in transitions.iter().enumerate() {
+            // if idx % 2 == target && (*transition > a0 || (*transition == 0 && a0 == 0 && target == 0)){
+            if idx % 2 == target && *transition > a0 {
+                let idx2 = if idx + 1 == transitions.len() { idx } else { idx + 1 };
+                return (*transition, transitions[idx2])
+            }
+        }
+        unreachable!()
+    }
+}
+
+/// Decode a Group 4 Image
+/// 
+/// - `width` is the width of the image.
+/// - The callback `line_cb` is called for each decoded line.
+///   The argument is the list of positions of color change, starting with white.
+/// 
+///   If `height` is specified, at most that many lines will be decoded,
+///   otherwise data is decoded until the end-of-block marker (or end of data).
+/// 
+/// To obtain an iterator over the pixel colors, the `pels` function is provided.
+// pub fn decode_g4(input: impl Iterator<Item=u8>, width: u16, height: Option<u16>, mut line_cb: impl FnMut(&[u16])) -> Result<(), String> {
+pub fn decode_g4_new(input: impl Iterator<Item=u8>, width: u16, height: Option<u16>, mut line_cb: impl FnMut(&[u16])) -> Result<(), String> {
+
+    let mut reader = ByteReader::new(input);
+    let mut reference: Vec<u16> = vec![width];
+    let mut current: Vec<u16> = vec![];
+
+    let limit = height.unwrap_or(u16::MAX);
+    'outer: for _ in 0 .. limit {
+        let mut a0 = 0;
+        let mut color = Color::White;
+        // println!(" - Starting Line");
+        
+        loop {
+            let mode = match mode::decode(&mut reader) {
+                Some(mode) => mode,
+                None => {
+                    return Ok(());
+                    // return Err(format!("Unexpectedly could not read next code word"))
+                },
+            };
+            // println!(" -  {:?}, color={:?}, a0={}, ref={:?}, transitions={:?}", mode, color, a0, reference, current);
+            
+            match mode {
+                Mode::Pass => {
+                    let (_b1, b2) = get_b1_b2(&reference, color, a0);
+                    a0 = b2;        
+                }
+                Mode::Vertical(delta) => {
+                    let (b1, _b2) = get_b1_b2(&reference, color, a0);
+                    let a1 = (b1 as i16 + delta as i16) as u16;
+                    current.push(a1);
+                    color = !color;
+                    a0 = a1;
+                }
+                Mode::Horizontal => {
+                    let a0a1 = colored(color, &mut reader).unwrap();
+                    let a1a2 = colored(!color, &mut reader).unwrap();
+                    let a1 = a0 + a0a1;
+                    let a2 = a1 + a1a2;
+                    // println!("a0a1={}, a1a2={}, a1={}, a2={}", a0a1, a1a2, a1, a2);
+                    current.push(a1);
+                    current.push(a2);
+                    a0 = a2;
+                }
+                Mode::Extension => {
+                    let _xxx = reader.peek(3).unwrap();
+                    println!("extension: {:03b}", _xxx);
+                    reader.consume(3);
+                    println!("{:?}", current);
+                    break 'outer;
+                }
+            }
+
+            // println!(" -     > {:?}", current);
+
+            if a0 >= width {
+                break;
+            }
+        }
+        // println!(" -    => {:?}", current);
+
+        line_cb(&current);
+        std::mem::swap(&mut reference, &mut current);
+        current.clear();
+    }
+    if height.is_none() {
+        reader.expect(EDFB_HALF).ok().unwrap();
+        reader.expect(EDFB_HALF).ok().unwrap();
+    }
+    //reader.print_remaining();
+
+    Ok(())
+}
+
 /// Decode a Group 4 Image
 /// 
 /// - `width` is the width of the image.
@@ -93,6 +202,7 @@ pub fn decode_g3(input: impl Iterator<Item=u8>, mut line_cb: impl FnMut(&[u16]))
 /// 
 /// To obtain an iterator over the pixel colors, the `pels` function is provided.
 pub fn decode_g4(input: impl Iterator<Item=u8>, width: u16, height: Option<u16>, mut line_cb: impl FnMut(&[u16])) -> Option<()> {
+// pub fn decode_g4_old(input: impl Iterator<Item=u8>, width: u16, height: Option<u16>, mut line_cb: impl FnMut(&[u16])) -> Option<()> {
     let mut reader = ByteReader::new(input);
     let mut reference: Vec<u16> = vec![];
     let mut current: Vec<u16> = vec![];
@@ -110,7 +220,7 @@ pub fn decode_g4(input: impl Iterator<Item=u8>, width: u16, height: Option<u16>,
                 Some(mode) => mode,
                 None => break 'outer,
             };
-            //println!("  {:?}, color={:?}, a0={}", mode, color, a0);
+            println!("  {:?}, color={:?}, a0={}", mode, color, a0);
             
             match mode {
                 Mode::Pass => {

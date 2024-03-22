@@ -8,5 +8,13 @@ license = "MIT"
 keywords = ["CCITT", "fax", "CCITTFaxDecode"]
 repository = "https://github.com/pdf-rs/fax"
 
+[[bin]]
+path = "src/generate.rs"
+name = "gendata"
+
+[[bin]]
+path = "src/runtest.rs"
+name = "runtest"
+
 [dependencies]
 fax_derive = { version = "0.1.0", path = "derive" }

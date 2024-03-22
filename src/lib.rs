@@ -209,6 +209,48 @@ impl<'a> Transitions<'a> {
             }
         }
     }
+    fn get_next_b0_b1(&self, width: u16, a0: u16, target: Color) -> (u16, u16) {
+        let mut color = Color::White;
+
+        let mut actual_edges = vec![0];
+        actual_edges.extend_from_slice(self.edges);
+        actual_edges.push(width);
+        actual_edges.push(width);
+        actual_edges.push(width);
+        actual_edges.push(width);
+        println!("      a0={} width={} : {:?}", a0, width, &actual_edges);
+        for point in actual_edges.windows(2) {
+            if color != target && point[0] >= a0 {             
+                if a0 == 0 && color == Color::Black && point[0] == 0 {
+                    continue;
+                }
+                println!("      b0={} b1={}", point[0], point[1]);
+                return (point[0], point[1])
+            }
+            color = !color;
+        }
+        unreachable!();
+    }
+
+    fn get_next_b0_b1_old(&self, width: u16, a0: u16, target: Color) -> (u16, u16) {
+        let mut color = Color::White;
+
+        let mut actual_edges = vec![0];
+        actual_edges.extend_from_slice(self.edges);
+        actual_edges.push(width);
+        actual_edges.push(width);
+        actual_edges.push(width);
+        println!("      a0={} width={} : {:?}", a0, width, &actual_edges);
+        for point in actual_edges.windows(2) {
+            if color != target && point[0] >= a0 {
+                println!("      b0={} b1={}", point[0], point[1]);
+                return (point[0], point[1])
+            }
+            color = !color;
+        }
+        unreachable!();
+    }
+
     fn next_color(&mut self, start: u16, color: Color, start_of_row: bool) -> Option<u16> {
         if start_of_row {
             if color == Color::Black {
