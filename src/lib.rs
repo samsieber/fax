@@ -218,7 +218,7 @@ impl<'a> Transitions<'a> {
         actual_edges.push(width);
         actual_edges.push(width);
         actual_edges.push(width);
-        println!("      a0={} width={} : {:?}", a0, width, &actual_edges);
+        // println!("      a0={} width={} : {:?}", a0, width, &actual_edges);
         for point in actual_edges.windows(2) {
             if color != target && point[0] >= a0 {             
                 if a0 == 0 && color == Color::Black && point[0] == 0 {
@@ -240,10 +240,10 @@ impl<'a> Transitions<'a> {
         actual_edges.push(width);
         actual_edges.push(width);
         actual_edges.push(width);
-        println!("      a0={} width={} : {:?}", a0, width, &actual_edges);
+        // println!("      a0={} width={} : {:?}", a0, width, &actual_edges);
         for point in actual_edges.windows(2) {
             if color != target && point[0] >= a0 {
-                println!("      b0={} b1={}", point[0], point[1]);
+                // println!("      b0={} b1={}", point[0], point[1]);
                 return (point[0], point[1])
             }
             color = !color;

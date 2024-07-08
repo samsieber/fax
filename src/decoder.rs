@@ -163,9 +163,9 @@ pub fn decode_g4_new(input: impl Iterator<Item=u8>, width: u16, height: Option<u
                 }
                 Mode::Extension => {
                     let _xxx = reader.peek(3).unwrap();
-                    println!("extension: {:03b}", _xxx);
+                    // println!("extension: {:03b}", _xxx);
                     reader.consume(3);
-                    println!("{:?}", current);
+                    // println!("{:?}", current);
                     break 'outer;
                 }
             }
@@ -220,7 +220,7 @@ pub fn decode_g4(input: impl Iterator<Item=u8>, width: u16, height: Option<u16>,
                 Some(mode) => mode,
                 None => break 'outer,
             };
-            println!("  {:?}, color={:?}, a0={}", mode, color, a0);
+            // println!("  {:?}, color={:?}, a0={}", mode, color, a0);
             
             match mode {
                 Mode::Pass => {
